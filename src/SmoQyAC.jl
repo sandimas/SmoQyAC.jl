@@ -26,4 +26,6 @@ export Upsample_Interpolations
 export Plot_cut
 export get_2D_for_renormalized_Ω
 export renormalize_Ω
+export save_AC_data
+export load_AC_data
 end # module SmoQyAC

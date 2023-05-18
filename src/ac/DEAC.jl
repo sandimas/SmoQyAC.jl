@@ -12,11 +12,13 @@ function deac_2D_generate_input_files(SimulationFolder::String,Correlation::Stri
     deac_dir = SimulationFolder * "/deac_inputs/" 
     try
         mkdir(deac_dir)
+        
+    catch
+    end
+    try
         mkdir(deac_dir * Correlation * "/")
     catch
-        print("")
     end
-    
     for x in 1:nx
         for y in 1:ny
             out_arr = zeros(Float64,(nτ2,3))
@@ -37,7 +39,7 @@ function run_deac_AC_2D(SimulationFolder::String,Correlation::String,nx,ny,β;nS
     fermion = (Correlation == "greens_up" || Correlation == "greens_dn") 
     executable = (fermion) ? "deac.f" : "deac.e"
     save_dir = SimulationFolder * "/AC_out/" 
-    in_dir = SimulationFolder * "/deac_inputs/"
+    in_dir = SimulationFolder * "/deac_inputs/"*Correlation*"/"
     temperature = 1/β
     try
         mkdir(save_dir)
@@ -79,6 +81,7 @@ function load_from_deac(SimulationFolder::String,Correlation::String,nx::Int64,n
     nω = Int64(filesize(dir*flist[1])/sizeof(Float64))
     out_dir = SimulationFolder * "/AC_out/"*Correlation*"/DEAC/"
     data = zeros(Float64,(nω,nx,ny))
+    N_data = zeros(Int64,(nx,ny))
     freqlist = Vector{Float64}(undef,nω)
     for x in 1:nx
         for y in 1:ny
@@ -89,7 +92,7 @@ function load_from_deac(SimulationFolder::String,Correlation::String,nx::Int64,n
             datums = zeros(Float64,(nω,nfile))
             err = zeros(Float64,(nω,))
             outdat = Vector{Float64}(undef,nω)
-            
+            N_data[x,y] = nfile
             for fn in 1:nfile
                 f = open(dir*flist[fn])
                 indat = Vector{Float64}(undef,nω)
@@ -116,5 +119,27 @@ function load_from_deac(SimulationFolder::String,Correlation::String,nx::Int64,n
             close(outfile)
         end
     end
-    return data, freqlist
+    data_dict = Dict{String,Any}(
+        "A" => data,
+        "ωs" => freqlist,
+        "N" => N_data
+    )
+    return data_dict
+end
+
+function merge_DEAC_outputs(data_1::Dict{String,Any},data_2::Dict{String,Any})
+    n_total = data_1["N"] +  data_2["N"]
+    A1 = data_1["A"]
+    A2 = data_2["A"]
+    nω = size(data_1["ωs"],1)
+    merged_data = zeros(Float64,size(A1))
+    for ω in 1:nω
+        merged_data[ω,:,:] = (data_1["N"] .* A1[ω,:,:] .+ data_2["N"] .* A2[ω,:,:] ) ./ n_total
+    end
+    data_out = Dict{String,Any}(
+        "A" => merged_data,
+        "ωs" => data_1["ωs"],
+        "N" => n_total
+    )
+    return data_out
 end

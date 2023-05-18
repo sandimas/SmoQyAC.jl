@@ -1,4 +1,3 @@
-# using DataFrames
 
 function get_2D_time_displaced(SimFolder::String,GreensType::String;orbital=1,space::String="momentum")
     _,real,_,std, β = load_from_SmoQyDQMC(simulationfolder=SimFolder,

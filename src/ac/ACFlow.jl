@@ -75,7 +75,12 @@ function run_MEM_AC(SimulationFolder::String,
         end
     end
     cd("../")
-    return A_out, meshω, G_out
+    data_out = Dict{String,Any}(
+        "A" => A_out,
+        "ωs" => meshω,
+        "G" => G_out
+    )
+    return data_out
 end
 
 function load_from_MEM(SimulationFolder::String,Correlation::String,nx::Int64,ny::Int64)
@@ -97,5 +102,10 @@ function load_from_MEM(SimulationFolder::String,Correlation::String,nx::Int64,ny
             
         end
     end
-    return A, freqlist, G
+    data_out = Dict{String,Any}(
+        "A" => A,
+        "ωs" => freqlist,
+        "G" => G
+    )
+    return data_out
 end

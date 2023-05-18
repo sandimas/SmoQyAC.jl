@@ -1,8 +1,8 @@
 using CSV
 using DataFrames
 using TOML
-
-
+# using JLD2
+using FileIO
 ########################################
 ##
 ## function load_from_SmoQyDQMC(;
@@ -191,3 +191,13 @@ function get_dimensions(;df::DataFrame,space::String)
     return dimensions
 end
 
+
+function save_AC_data(A::Dict{String,Any}, SimulationFolder::String,Correlation::String,AC_method::String)
+   
+    save(SimulationFolder*"/AC_out/"*Correlation*"/"*AC_method*".jld2",A)
+end
+
+function load_AC_data(SimulationFolder::String,Correlation::String,AC_method::String)
+    
+    return load(SimulationFolder*"/AC_out/"*Correlation*"/"*AC_method*".jld2")
+end
