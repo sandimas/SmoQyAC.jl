@@ -1,6 +1,6 @@
 using CSV
 using DataFrames
-
+using TOML
 
 
 ########################################
@@ -37,12 +37,12 @@ using DataFrames
 ##
 ## Test block and examples
 #
-# dict,real,imag,std = load_from_SmoQyDQMC(simulationfolder="/home/james/Documents/code/1D-RIXS/IO_test-1",
+# dict,real,imag,std,β = load_from_SmoQyDQMC(simulationfolder="/home/james/Documents/code/1D-RIXS/IO_test-1",
 #                                          correlation="greens_up",
 #                                          space="momentum",
 #                                          type="time_displaced",bin=false)
 #
-# dict,real,image,sgnr,sgni = load_from_SmoQyDQMC(simulationfolder="/home/james/Documents/code/1D-RIXS/IO_test-1",
+# dict,real,image,sgnr,sgni,β = load_from_SmoQyDQMC(simulationfolder="/home/james/Documents/code/1D-RIXS/IO_test-1",
 #                                                 correlation="greens_up",
 #                                                 space="momentum",
 #                                                 type="time_displaced",bin=true)
@@ -73,7 +73,7 @@ function load_from_SmoQyDQMC(;simulationfolder::String,
         dim_prefix = "K_"
     end
 
-    
+    β = TOML.parsefile(simulationfolder *"/model_summary.toml")["beta"]
     if bin == false
 
         dimensions = get_dimensions(df=data_frame,space=_space)
@@ -113,7 +113,7 @@ function load_from_SmoQyDQMC(;simulationfolder::String,
             MEAN_I[o1,o2,τ,s1,s2,s3] = data_frame[row,"MEAN_I"]
             STD[o1,o2,τ,s1,s2,s3] = data_frame[row,"STD"]  
         end
-        return dimension_key, MEAN_R, MEAN_I, STD 
+        return dimension_key, MEAN_R, MEAN_I, STD, β
     else # Binned data
         
         index_file = csv_folder * _correlation * "_" * _space * "_" * _type * "_index_key.csv"
@@ -166,7 +166,7 @@ function load_from_SmoQyDQMC(;simulationfolder::String,
             SIGN_R[o1,o2,τ,s1,s2,s3,bin,PID] = data_frame[row,"SIGN_R"]
             SIGN_I[o1,o2,τ,s1,s2,s3,bin,PID] = data_frame[row,"SIGN_R"]  
         end
-        return dimension_key, MEAN_R, MEAN_I, SIGN_R, SIGN_I 
+        return dimension_key, MEAN_R, MEAN_I, SIGN_R, SIGN_I, β 
     end
     println("If you read this, something has gone awry.")
 end
