@@ -4,10 +4,9 @@ using CairoMakie
 using ColorSchemes
 
 function Plot_cut(data::AbstractArray,ωs::AbstractArray,outfile_name::String;
-                  ω_low::Float64=0.0,ω_high::Float64=2.0,
                   title::String="",x_label::String="",y_label::String="ω",
                   xtick_info::Dict{String,Any}=(),overlay_1D_data::AbstractArray=[],
-                  clip_vals::Vector{Float64}=[])
+                  clip_vals::Vector=[],ω_low::Float64=0.0,ω_high::Float64=2.0)
 
     figure_info = (; resolution=(1000,600))
     axis = (; xlabel=x_label, ylabel=y_label,title=title)
@@ -15,7 +14,7 @@ function Plot_cut(data::AbstractArray,ωs::AbstractArray,outfile_name::String;
     ω_high_index = findlast(ωs .<= ω_high)
     x_positions = collect(range(0.0,1.0,size(data,1)))
     
-
+    
     if !isempty(xtick_info)
         x_positions = xtick_info["x_positions"]
         x_string = xtick_info["x_tick_labels"]

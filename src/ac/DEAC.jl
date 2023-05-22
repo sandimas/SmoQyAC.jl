@@ -8,7 +8,9 @@ function deac_2D_generate_input_files(SimulationFolder::String,Correlation::Stri
     ny = size(inputData,3)
     Δτ = β / (nτ - 1)
     τs = collect(range(0.0,(Float64(nτ)-1)*Δτ,nτ))
-    nτ2 = Int64((nτ-1)/2)+1
+    
+    fermion = (Correlation == "greens_up" || Correlation == "greens_dn") 
+    nτ2 = Int64((nτ-1)/2)+1 # (fermion) ? nτ : Int64((nτ-1)/2)+1
     deac_dir = SimulationFolder * "/deac_inputs/" 
     try
         mkdir(deac_dir)

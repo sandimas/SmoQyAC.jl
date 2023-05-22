@@ -1,6 +1,5 @@
 module SmoQyAC
 push!(LOAD_PATH, ENV["ACFLOW_HOME"])
-
 include("load/FileIO.jl")
 include("load/ParseInput.jl")
 include("ac/DEAC.jl")

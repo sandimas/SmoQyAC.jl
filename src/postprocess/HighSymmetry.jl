@@ -1,11 +1,12 @@
 #!/usr/bin/env julia
-function get_high_symmetry_2D(A::AbstractArray{T}) where {T}
+function get_high_symmetry_2D(data_dict::Dict{String,Any}) 
+    A = data_dict["A"]
     nω = size(A,1)
     L = size(A,2)
     L2 = Int64(L/2)
     points = 3*L2+1
     
-    data=zeros(T,(points,nω))
+    data=zeros(Float64,(points,nω))
     for i in 1:L2+1
         data[i,:] = A[:,i,1]
     end
@@ -20,7 +21,6 @@ function get_high_symmetry_2D(A::AbstractArray{T}) where {T}
         "x_tick_labels" => ["Γ","X","M","Γ"],
         "x_positions" => collect(range(0.0,1.0,size(data,1))),
     )
-
     return data, xtick_info
 end
 

@@ -8,7 +8,7 @@ function run_MEM_AC(SimulationFolder::String,
                     inputData::AbstractArray,
                     inputError::AbstractArray,
                     β::AbstractFloat;
-                    ω_max=20.,nω=100)
+                    ω_max=20.,nω=100, symmetry::String="none")
     fermion = (Correlation == "greens_up" || Correlation == "greens_dn") 
     if fermion
         ω_low = -ω_max 
@@ -57,15 +57,33 @@ function run_MEM_AC(SimulationFolder::String,
     )
 
     S_dict = Dict{String,Any}( )
-
+    
+    xlow = 1
+    ylow = 1    
+    if symmetry == "none"
+        xhigh = nx
+        yhigh = ny
+    elseif symmetry == "square" || symmetry == "rectangle"        
+        xhigh = Int64(nx/2) + 1
+        yhigh = Int64(ny/2) + 1
+    end
     ACFlow.setup_param(B_dict,S_dict)
     cur_dir = pwd()
     cd(mktempdir(cur_dir))
-    A_out = zeros(Float64,(nω,nx,ny))
-    G_out = zeros(ComplexF64,(nω,nx,ny))
-    for x in 1:nx
-        for y in 1:ny
-            meshω, A_out[:,x,y], G_out[:,x,y] = ACFlow.solve(grid,inputData[:,x,y],inputError[:,x,y])
+    A_out = zeros(Float64,(nω_adj,nx,ny))
+    G_out = zeros(ComplexF64,(nω_adj,nx,ny))
+    for x in xlow:xhigh
+        if (symmetry == "square") 
+            yhigh = x
+        end
+        for y in ylow:yhigh
+            try
+                meshω, A_out[:,x,y], G_out[:,x,y] = ACFlow.solve(grid,inputData[:,x,y],inputError[:,x,y])
+            catch
+                ### TODO, if fail try using symmetry
+            end            
+                
+
             outfile = open("../"*output_dir*string(x) * "_" * string(y)*".csv","w")
             write(outfile,"OMEGA A GREENS_R GREENS_I\n")
             for w in 1:nω_adj
@@ -75,6 +93,24 @@ function run_MEM_AC(SimulationFolder::String,
         end
     end
     cd("../")
+    
+    ### Symmetry reflections
+    if symmetry == "square"
+        for x in 2:Int64(nx/2)+1
+            for y in 1:x-1
+                A_out[:,y,x] = A_out[:,x,y]
+                G_out[:,y,x] = G_out[:,x,y]
+            end
+        end
+    end
+    
+    if symmetry == "square" || symmetry == "rectangle"
+        A_out[:,1:Int64(nx/2) + 1,2+Int64(ny/2):ny] = reverse(A_out[:,1:Int64(nx/2) + 1,2:Int64(ny/2)],dims=3)
+        G_out[:,1:Int64(nx/2) + 1,2+Int64(ny/2):ny] = reverse(G_out[:,1:Int64(nx/2) + 1,2:Int64(ny/2)],dims=3)
+        A_out[:,Int64(nx/2) + 2:nx,1:ny] = reverse(A_out[:,2:Int64(nx/2),1:ny],dims=2)
+        G_out[:,Int64(nx/2) + 2:nx,1:ny] = reverse(G_out[:,2:Int64(nx/2),1:ny],dims=2)
+    end    
+    
     data_out = Dict{String,Any}(
         "A" => A_out,
         "ωs" => meshω,
