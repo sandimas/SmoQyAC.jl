@@ -5,11 +5,11 @@ include("load/ParseInput.jl")
 include("ac/DEAC.jl")
 include("ac/ACFlow.jl")
 include("ac/JackKnife.jl")
+include("ac/Symmetry.jl")
 include("postprocess/HighSymmetry.jl")
 include("postprocess/Rescale.jl")
 include("plot/Plotting.jl")
 include("postprocess/RenormalizeW.jl")
-
 
 export get_2D_integrated
 export get_2D_time_displaced
@@ -18,6 +18,8 @@ export deac_2D_generate_input_files
 export run_deac_AC_2D
 export load_from_deac
 export run_MEM_AC
+export run_SK_AC
+export run_ACFlow
 export load_from_MEM
 export get_high_symmetry_2D
 export get_high_symmetry_1D

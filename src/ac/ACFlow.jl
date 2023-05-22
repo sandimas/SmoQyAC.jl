@@ -3,12 +3,14 @@ using ACFlow
 using CSV
 using DataFrames
 
+
 function run_MEM_AC(SimulationFolder::String,
                     Correlation::String,
                     inputData::AbstractArray,
                     inputError::AbstractArray,
                     β::AbstractFloat;
                     ω_max=20.,nω=100, symmetry::String="none")
+
     fermion = (Correlation == "greens_up" || Correlation == "greens_dn") 
     if fermion
         ω_low = -ω_max 
@@ -20,26 +22,11 @@ function run_MEM_AC(SimulationFolder::String,
         nω_adj = nω
     end
 
-    output_dir = SimulationFolder *"/AC_out/"
-    try
-        mkdir(output_dir)
-    catch
-    end
-    try
-        output_dir *= Correlation * "/"
-        mkdir(output_dir)
-    catch
-    end
-    try
-        output_dir *= "MEM/"
-        mkdir(output_dir)
-    catch
-    end
     nτ = size(inputData,1) 
-    nx = size(inputData,2)
-    ny = size(inputData,3)
-    grid = collect(range(0.0,β,nτ))
-    meshω = collect(range(ω_low,ω_high,nω_adj))
+    # nx = size(inputData,2)
+    # ny = size(inputData,3)
+    # grid = collect(range(0.0,β,nτ))
+    # meshω = collect(range(ω_low,ω_high,nω_adj))
     kernel = (fermion) ? "fermi" : "bsymm"
     grid_type =  (fermion) ? "ftime" : "btime"
 
@@ -57,7 +44,86 @@ function run_MEM_AC(SimulationFolder::String,
     )
 
     S_dict = Dict{String,Any}( )
+    data_out = run_ACFlow(SimulationFolder,Correlation,inputData,inputError,B_dict,S_dict,symmetry=symmetry)
+    return data_out
+end
+
+function run_SK_AC(SimulationFolder::String,
+                    Correlation::String,
+                    inputData::AbstractArray,
+                    inputError::AbstractArray,
+                    β::AbstractFloat;
+                    ω_max=20.,nω=100, symmetry::String="none")
+
+    fermion = (Correlation == "greens_up" || Correlation == "greens_dn") 
+    if fermion
+    ω_low = -ω_max 
+    ω_high = ω_max
+    nω_adj = 2*nω
+    else
+    ω_low = 0.0
+    ω_high = ω_max
+    nω_adj = nω
+    end
+
+    nτ = size(inputData,1) 
+    # nx = size(inputData,2)
+    # ny = size(inputData,3)
+    # grid = collect(range(0.0,β,nτ))
+    # meshω = collect(range(ω_low,ω_high,nω_adj))
+    kernel = (fermion) ? "fermi" : "bsymm"
+    grid_type =  (fermion) ? "ftime" : "btime"
+
+    B_dict = Dict{String,Any}(
+    "solver" => "StochSK",
+    "ktype"  => kernel,
+    "mtype"  => "flat",
+    "mesh"   => "linear",
+    "grid"   => grid_type,
+    "nmesh"  => nω_adj,
+    "ngrid"  => nτ,
+    "wmax"   => ω_high,
+    "wmin"   => ω_low,
+    "beta"   => β,
+    )
+
+    S_dict = Dict{String,Any}( )
+    data_out = run_ACFlow(SimulationFolder,Correlation,inputData,inputError,B_dict,S_dict,symmetry=symmetry)
+    return data_out
+end
+
+
+
+function run_ACFlow(SimulationFolder::String,
+                    Correlation::String,
+                    inputData::AbstractArray,
+                    inputError::AbstractArray,
+                    B_dict::Dict{String,Any},
+                    S_dict::Dict{String,Any};
+                    symmetry::String="none")
     
+    output_dir = SimulationFolder *"/AC_out/"
+    try
+        mkdir(output_dir)
+    catch
+    end
+    try
+        output_dir *= Correlation * "/"
+        mkdir(output_dir)
+    catch
+    end
+    try
+        output_dir *= "MEM/"
+        mkdir(output_dir)
+    catch
+    end
+    nτ = B_dict["ngrid"]
+    β = B_dict["beta"]
+    nx = size(inputData,2)
+    ny = size(inputData,3)
+    grid = collect(range(0.0,β,nτ))
+    meshω = collect(range(B_dict["wmin"],B_dict["wmax"],B_dict["nmesh"]))
+    nω_adj = B_dict["nmesh"]
     xlow = 1
     ylow = 1    
     if symmetry == "none"
@@ -95,22 +161,10 @@ function run_MEM_AC(SimulationFolder::String,
     cd("../")
     
     ### Symmetry reflections
-    if symmetry == "square"
-        for x in 2:Int64(nx/2)+1
-            for y in 1:x-1
-                A_out[:,y,x] = A_out[:,x,y]
-                G_out[:,y,x] = G_out[:,x,y]
-            end
-        end
+    if symmetry != "none"
+        populate_by_symmetry!(A_out,symmetry)
+        populate_by_symmetry!(G_out,symmetry)
     end
-    
-    if symmetry == "square" || symmetry == "rectangle"
-        A_out[:,1:Int64(nx/2) + 1,2+Int64(ny/2):ny] = reverse(A_out[:,1:Int64(nx/2) + 1,2:Int64(ny/2)],dims=3)
-        G_out[:,1:Int64(nx/2) + 1,2+Int64(ny/2):ny] = reverse(G_out[:,1:Int64(nx/2) + 1,2:Int64(ny/2)],dims=3)
-        A_out[:,Int64(nx/2) + 2:nx,1:ny] = reverse(A_out[:,2:Int64(nx/2),1:ny],dims=2)
-        G_out[:,Int64(nx/2) + 2:nx,1:ny] = reverse(G_out[:,2:Int64(nx/2),1:ny],dims=2)
-    end    
-    
     data_out = Dict{String,Any}(
         "A" => A_out,
         "ωs" => meshω,
@@ -145,3 +199,4 @@ function load_from_MEM(SimulationFolder::String,Correlation::String,nx::Int64,ny
     )
     return data_out
 end
+
