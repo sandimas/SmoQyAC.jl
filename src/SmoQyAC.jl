@@ -19,8 +19,8 @@ export run_deac_AC_2D
 export load_from_deac
 export run_MEM_AC
 export run_SK_AC
+export run_OM_AC
 export run_ACFlow
-export load_from_MEM
 export get_high_symmetry_2D
 export get_high_symmetry_1D
 export Upsample_Interpolations
