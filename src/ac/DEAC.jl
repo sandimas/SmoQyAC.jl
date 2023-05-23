@@ -70,8 +70,8 @@ function run_deac_AC_2D(SimulationFolder::String,Correlation::String,nx,ny,β;nS
 
 
     Threads.@threads for thd in 1:sym["pairlen"]*nStatistics
-        pair = ceil(Int,thd/nStatistics)
-        seed_offset = thd % sym["pairlen"] - 1
+        seed_offset = ceil(Int,thd/nStatistics)
+        pair = thd % sym["pairlen"] +1
         x = sym["xvec"][pair]
         y = sym["yvec"][pair]
         fname = string(x) * "_" * string(y)
