@@ -67,13 +67,13 @@ function run_deac_AC_2D(SimulationFolder::String,Correlation::String,nx,ny,β;nS
 
     ### Symmetry stuff
     sym = get_symmetry_vecs(nx,ny,symmetry)
-
-
-    Threads.@threads for thd in 1:sym["pairlen"]*nStatistics
-        seed_offset = ceil(Int,thd/nStatistics)
-        pair = thd % sym["pairlen"] +1
+    
+    Threads.@threads for thd in 0:sym["pairlen"]*nStatistics-1
+        seed_offset = floor(Int,thd/nStatistics)
+        pair = (thd) % sym["pairlen"] +1
         x = sym["xvec"][pair]
         y = sym["yvec"][pair]
+        
         fname = string(x) * "_" * string(y)
         try
             mkdir(save_dir * fname)
