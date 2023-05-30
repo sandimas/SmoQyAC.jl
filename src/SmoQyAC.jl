@@ -29,4 +29,6 @@ export get_2D_for_renormalized_Ω
 export renormalize_Ω
 export save_AC_data
 export load_AC_data
+
+export get_symmetric_point
 end # module SmoQyAC

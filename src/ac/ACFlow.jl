@@ -181,7 +181,19 @@ function run_ACFlow(SimulationFolder::String,
         try
             _, A_out[:,x,y], G_out[:,x,y] = ACFlow.solve(grid,inputData[:,x,y],inputError[:,x,y])
         catch
-            println("fail ",B_dict["solver"])
+            fail = true
+            println("fail ",x," ",y," ",B_dict["solver"])
+            xnew,ynew = get_symmetric_point(inputData,x,y)
+            while (xnew != 0 && fail)
+                try
+                    _, A_out[:,x,y], G_out[:,x,y] = ACFlow.solve(grid,inputData[:,xnew,ynew],inputError[:,xnew,ynew])
+                    println(xnew," ",ynew," worked for ",x," ",y)
+                    fail = false
+                catch
+                    println("fail ",xnew," ",ynew," ",B_dict["solver"])
+                end
+                xnew,ynew = get_symmetric_point(inputData,xnew,ynew)
+            end
             ### TODO, if fail try using symmetry
         end            
             
@@ -234,4 +246,5 @@ end
 #     )
 #     return data_out
 # end
+
 
