@@ -9,8 +9,9 @@ function deac_2D_generate_input_files(SimulationFolder::String,Correlation::Stri
     Δτ = β / (nτ - 1)
     τs = collect(range(0.0,(Float64(nτ)-1)*Δτ,nτ))
     
-    # fermion = (Correlation == "greens_up" || Correlation == "greens_dn") 
-    nτ2 = Int64((nτ-1)/2)+1 # (fermion) ? nτ : Int64((nτ-1)/2)+1
+    fermion = (Correlation == "greens_up" || Correlation == "greens_dn") 
+    nτ2 =  (fermion) ? nτ : Int64((nτ-1)/2)+1
+    # nτ2 = Int64((nτ-1)/2)+1
     deac_dir = SimulationFolder * "/deac_inputs/" 
     try
         mkdir(deac_dir)
@@ -129,7 +130,7 @@ function load_from_deac(SimulationFolder::String,Correlation::String,nx::Int64,n
             outdat = datums[:,1]
         end
         data[:,x,y] = outdat
-        
+        4
         
         
         outfile = open(out_dir*string(x) * "_" * string(y)*".csv","w")
