@@ -1,55 +1,91 @@
 using Interpolations
 using FourierTools
 
-function Upsample_Interpolations(G::AbstractArray{ComplexF64},GreensType::String,ωs::AbstractArray{Float64},new_nx::Int64,new_ny::Int64;Ω_0::Float64=1.0)
+function Upsample_Interpolations(G::AbstractArray{ComplexF64},GreensType::String,ωs::AbstractArray{Float64},new_nx::Int64,new_ny::Int64;Ω_0::Float64=1.0,use_sinc::Bool=false)
     nω = size(ωs,1)        
     Δx = (size(G,2)-1)/new_nx
     Δy = (size(G,3)-1)/new_ny
+    if ! use_sinc        
+        if GreensType != "phonon"
+            
+            
+            ϵ_k_old = build_ϵ_k(size(G,2),size(G,3))
+            ϵ_k_new = build_ϵ_k(new_nx,new_ny)
+            Σ_old = fermion_get_Σ(G,ϵ_k_old,ωs)
+            Σ_new = zeros(ComplexF64,(nω,new_nx,new_ny))
+            
+            itp = interpolate(Σ_old[:,:,:],BSpline(Constant()))
         
-    if GreensType != "phonon"
         
-        
-        ϵ_k_old = build_ϵ_k(size(G,2),size(G,3))
-        ϵ_k_new = build_ϵ_k(new_nx,new_ny)
-        Σ_old = fermion_get_Σ(G,ϵ_k_old,ωs)
-        Σ_new = zeros(ComplexF64,(nω,Nx,Ny))
-           
-        itp = interpolate(Σ_old[:,:,:],BSpline(Quadratic(Reflect(OnCell()))))
-    
-      
-        for ω in 1:ωs
-            for kx in 1:new_nx
-                for ky in 1:new_ny
-                    Σ_new[ω,kx,ky] = itp(Float64(ω),Δx*kx+1.0,Δy*ky+1.0)
+            for ω in 1:nω
+                for kx in 1:new_nx
+                    for ky in 1:new_ny
+                        Σ_new[ω,kx,ky] = itp(Float64(ω),Δx*kx+1.0,Δy*ky+1.0)
+                    end
                 end
             end
-        end
-        
-        G_new = Σ_to_G(Σ_new,ϵ_k_new,ωs)
+            
+            G_new = Σ_to_G(Σ_new,ϵ_k_new,ωs)
 
-        A = G_to_A(G_new)
-        return G_new, A
+            A = G_to_A(G_new)
+            return G_new, A
+        else
+        
+            Π_old = boson_get_Π(G,ωs,Ω_0)
+            Π_new = zeros(ComplexF64,(nω,new_nx,new_ny))
+        
+            itp = interpolate(Π_old[:,:,:],BSpline(Quadratic(Reflect(OnCell()))))
+            
+            for ω in 1:nω
+                for kx in 1:new_nx
+                    for ky in 1:new_ny
+                        Π_new[ω,kx,ky] = itp(Float64(ω),Δx*kx+1.0,Δy*ky+1.0)
+                    end
+                end
+
+            end
+        
+            D_new = Π_to_D(Π_new,ωs,Ω_0)
+            B = D_to_B(D_new,ωs,Ω_0)
+            return D_new, B
+        end
     else
-     
-        Π_old = boson_get_Π(G,ωs,Ω_0)
-        Π_new = zeros(ComplexF64,(nω,new_nx,new_ny))
-    
-        itp = interpolate(Π_old[:,:,:],BSpline(Quadratic(Reflect(OnCell()))))
+        println("SINC")
+        if GreensType != "phonon"
+            
+            
+            ϵ_k_old = build_ϵ_k(size(G,2),size(G,3))
+            ϵ_k_new = build_ϵ_k(new_nx,new_ny)
+            Σ_old = fermion_get_Σ(G,ϵ_k_old,ωs)
+            Σ_new = zeros(ComplexF64,(nω,new_nx,new_ny))
+            
         
-        for ω in 1:nω
-            for kx in 1:new_nx
-                for ky in 1:new_ny
-                    Π_new[ω,kx,ky] = itp(Float64(ω),Δx*kx+1.0,Δy*ky+1.0)
-                end
+        
+            for ω in 1:nω
+                Σ_new[ω,:,:] = resample(Σ_old[ω,:,:],(new_nx,new_ny))
             end
+            
+            G_new = Σ_to_G(Σ_new,ϵ_k_new,ωs)
 
+            A = G_to_A(G_new)
+            return G_new, A
+        else
+        
+            Π_old = boson_get_Π(G,ωs,Ω_0)
+            Π_new = zeros(ComplexF64,(nω,new_nx,new_ny))
+        
+            
+            for ω in 1:nω
+                Π_new[ω,:,:] = resample(Π_old[ω,:,:],(new_nx,new_ny))
+          
+            end
+        
+            D_new = Π_to_D(Π_new,ωs,Ω_0)
+            B = D_to_B(D_new,ωs,Ω_0)
+            return D_new, B
         end
-    
-        D_new = Π_to_D(Π_new,ωs,Ω_0)
-        B = D_to_B(D_new,ωs,Ω_0)
-        return D_new, B
     end
-    
+        
     
 end
 
@@ -78,7 +114,7 @@ function fermion_get_Σ(G::AbstractArray{ComplexF64},ϵ_k::AbstractArray{Float64
     for ω in 1:nω
         for x in 1:Lx
             for y in 1:Ly
-                Σ[:,ω,x,y] .= ωs[ω]-ϵ_k[x,y] .- 1/G[:,ω,x,y]
+                Σ[ω,x,y] = ωs[ω]-ϵ_k[x,y] - 1. /G[ω,x,y]
             end
         end
     end

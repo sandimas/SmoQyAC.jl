@@ -1,5 +1,5 @@
 using Statistics
-
+using FileIO
 
 function deac_2D_generate_input_files(SimulationFolder::String,Correlation::String,inputData::AbstractArray,inputError::AbstractArray,β::AbstractFloat)
 
@@ -39,7 +39,7 @@ function deac_2D_generate_input_files(SimulationFolder::String,Correlation::Stri
     return nx, ny
 end
 
-function run_deac_AC_2D(SimulationFolder::String,Correlation::String,nx,ny,β;nStatistics=1000,baseSeed=1000,ω_max=20,nω=100, symmetry::String="none",deac_exe_dir::String="")
+function run_deac_AC_2D(SimulationFolder::String,Correlation::String,nx,ny,β;nStatistics=1000,baseSeed=1000,ω_max=20,nω=100, symmetry::String="none",deac_exe_dir::String="",bin_size=100)
     fermion = (Correlation == "greens_up" || Correlation == "greens_dn") 
     executable = (fermion) ? "deac.f" : "deac.b"
     if deac_exe_dir != ""
@@ -68,78 +68,72 @@ function run_deac_AC_2D(SimulationFolder::String,Correlation::String,nx,ny,β;nS
 
     ### Symmetry stuff
     sym = get_symmetry_vecs(nx,ny,symmetry)
-    
-    Threads.@threads for thd in 0:sym["pairlen"]*nStatistics-1
-        seed_offset = floor(Int,thd/nStatistics)
-        pair = (thd) % sym["pairlen"] +1
-        x = sym["xvec"][pair]
-        y = sym["yvec"][pair]
-        
-        fname = string(x) * "_" * string(y)
-        try
-            mkdir(save_dir * fname)
-        catch
+    for stat in 1:nStatistics
+        Threads.@threads for pair in 1:sym["pairlen"]
+            
+            x = sym["xvec"][pair]
+            y = sym["yvec"][pair]
+            
+            fname = string(x) * "_" * string(y)
+            try
+                mkdir(save_dir * fname)
+            catch
+            end
+            seed = baseSeed + stat
+            # for seed = 1+baseSeed:nStatistics+baseSeed
+            flags = split(default_flags * " --save_directory "*save_dir *fname *" --seed "* string(seed)*" "*in_dir*fname*".bin")
+            Base.run(`$executable $flags`)
+            if stat % bin_size == 0
+                bin_DEAC_data(SimulationFolder,Correlation,x,y,bin_size)
+            end
         end
-        seed = baseSeed + seed_offset
-        # for seed = 1+baseSeed:nStatistics+baseSeed
-        flags = split(default_flags * " --save_directory "*save_dir *fname *" --seed "* string(seed)*" "*in_dir*fname*".bin")
-        Base.run(`$executable $flags`)
-        # end
+        
     end
     
 end
 
-function load_from_deac(SimulationFolder::String,Correlation::String,nx::Int64,ny::Int64;symmetry="none")
-    
-    dir_f = SimulationFolder * "/AC_out/"*Correlation*"/DEAC/1_1/"
-    flist_f = filter(x->contains(x,"_frequency_"),readdir(dir_f))
-    nω = Int64(filesize(dir_f*flist_f[1])/sizeof(Float64))
-    freqlist = Vector{Float64}(undef,nω)
-    ff = open(dir_f*flist_f[1])
-    read!(ff,freqlist)
-    close(ff)
+function load_from_deac(SimulationFolder::String,Correlation::String,nx::Int64,ny::Int64;symmetry="none",delete_files=false)
     out_dir = SimulationFolder * "/AC_out/"*Correlation*"/DEAC/"
+    dir_f = out_dir * "1_1/"
+    ωs = load(dir_f*"omega.jld2")["ω"]
+    nω = size(ωs,1)
     data = zeros(Float64,(nω,nx,ny))
     N_data = zeros(Int64,(nx,ny))
     
     sym = get_symmetry_vecs(nx,ny,symmetry)
 
-    Threads.@threads for pair in 1:sym["pairlen"]
+    # Threads.@threads 
+    for pair in 1:sym["pairlen"]
         x = sym["xvec"][pair]
         y = sym["yvec"][pair]
 
         dir = SimulationFolder * "/AC_out/"*Correlation*"/DEAC/" * string(x) * "_" * string(y) * "/"
         
-        flist = filter(x->contains(x,"_dsf_"),readdir(dir))
+        flist = filter(x->contains(x,"bin_"),readdir(dir))
         nfile = size(flist,1)
         datums = zeros(Float64,(nω,nfile))
         err = zeros(Float64,(nω,))
         outdat = Vector{Float64}(undef,nω)
-        N_data[x,y] = nfile
+        n_total = 0
         for fn in 1:nfile
-            f = open(dir*flist[fn])
-            indat = Vector{Float64}(undef,nω)
-            read!(f,indat)
-            datums[:,fn]= indat
-            close(f)
+            bindict = load(dir*flist[fn])
+            
+            datums[:,fn]= bindict["bin"]
+            n_total += bindict["N"]
         end
-
+        N_data[x,y] = n_total
         if nfile > 1
             outdat, err = JackKnife(datums)
         else
             outdat = datums[:,1]
         end
         data[:,x,y] = outdat
-        4
         
-        
-        outfile = open(out_dir*string(x) * "_" * string(y)*".csv","w")
-        write(outfile,"OMEGA MEAN_I STD\n")
-        for w in 1:nω
-            write(outfile,string(freqlist[w]) * " " * string(outdat[w]) * " " * string(err[w]) * "\n")
+        if delete_files 
+            for file in flist
+                rm(dir*file)
+            end
         end
-        close(outfile)
-        
     end
     ### Symmetry reflections
     if symmetry != "none"
@@ -147,7 +141,7 @@ function load_from_deac(SimulationFolder::String,Correlation::String,nx::Int64,n
     end
     data_dict = Dict{String,Any}(
         "A" => data,
-        "ωs" => freqlist,
+        "ωs" => ωs,
         "N" => N_data
     )
     return data_dict
@@ -168,4 +162,55 @@ function merge_DEAC_outputs(data_1::Dict{String,Any},data_2::Dict{String,Any})
         "N" => n_total
     )
     return data_out
+end
+
+
+function bin_DEAC_data(SimulationFolder::String,Correlation::String,kx::Int64,ky::Int64,bin_size::Int64)
+    
+    folder = SimulationFolder * "/AC_out/"*Correlation*"/DEAC/"*string(kx)*"_"*string(ky)*"/"
+    bin_freq_files = filter(x->contains(x,"omega.jld2"),readdir(folder))
+    flist_f = filter(x->contains(x,"_frequency_"),readdir(folder))
+    nω = Int64(filesize(folder*flist_f[1])/sizeof(Float64))
+    
+    if size(bin_freq_files,1) == 0
+        freqlist = Vector{Float64}(undef,nω)
+        ff = open(folder*flist_f[1])
+        read!(ff,freqlist)
+        close(ff)
+        freqdict = Dict{String,Any}( "ω" => freqlist)
+        save(folder*"omega.jld2",freqdict)
+    end
+    # remove freq files
+    for file in flist_f
+        rm(folder*file)
+    end
+    # remove logs
+    flist_f = filter(x->contains(x,"_log_"),readdir(folder))
+    for file in flist_f
+        rm(folder*file)
+    end
+
+    # bin data
+    flist_f = filter(x->contains(x,"_dsf_"),readdir(folder))
+    if size(flist_f,1) < bin_size
+        println("Error binning in "*folder)
+        println("Only "*string(size(flist_f,1))*" of "*string(bin_size)*" dsf files found")
+        exit()
+    end
+    data = zeros(Float64,(nω,))
+    for file in flist_f
+        tmp = Array{Float64}(undef,(nω,))
+        ff = open(folder*file)
+        read!(ff,tmp)
+        close(ff)
+        data += tmp
+    end
+    data = data ./ bin_size
+    bins = filter(x->contains(x,"bin_"),readdir(folder))
+    binnum = size(bins,1) + 1
+    datadict = Dict{String,Any}( "bin" => data, "N" => bin_size)
+    save(folder*"bin_"*string(binnum)*".jld2",datadict)
+    for file in flist_f
+        rm(folder*file)
+    end
 end

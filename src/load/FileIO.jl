@@ -154,7 +154,7 @@ function load_from_SmoQyDQMC(;simulationfolder::String,
         for row in 1:length(data_frame[:,DATA_R])
             index_num = data_frame[row,"INDEX"]
             o1 = index_frame[index_num,ID1]
-            o2 = index_frame[index_num,ID2]
+            o2 = index_frame[index_num,ID2]load_AC_data()
             τ = (n_τ != 1) ? index_frame[index_num,"Tau"]+1 : 1
             s1 = index_frame[index_num,dim_prefix*"1"]+1
             dimensions > 1 ? s2 = index_frame[index_num,dim_prefix*"2"]+1 : s2 = 1
