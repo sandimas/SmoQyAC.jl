@@ -11,7 +11,7 @@ function run_MEM_AC(SimulationFolder::String,
                     β::AbstractFloat;
                     ω_max=20.,nω=100, symmetry::String="none")
 
-    fermion = (Correlation == "greens_up" || Correlation == "greens_dn") 
+    fermion = (Correlation == "greens_up" || Correlation == "greens_dn" || Correlation ==  "greens") 
     if fermion
         ω_low = -ω_max 
         ω_high = ω_max
@@ -55,7 +55,7 @@ function run_SK_AC(SimulationFolder::String,
                     β::AbstractFloat;
                     ω_max=20.,nω=100, symmetry::String="none")
 
-    fermion = (Correlation == "greens_up" || Correlation == "greens_dn") 
+    fermion = (Correlation == "greens_up" || Correlation == "greens_dn" || Correlation ==  "greens") 
     if fermion
     ω_low = -ω_max 
     ω_high = ω_max
@@ -99,7 +99,7 @@ function run_OM_AC(SimulationFolder::String,
     β::AbstractFloat;
     ω_max=20.,nω=100, symmetry::String="none")
 
-    fermion = (Correlation == "greens_up" || Correlation == "greens_dn") 
+    fermion = (Correlation == "greens_up" || Correlation == "greens_dn" || Correlation ==  "greens") 
     if fermion
         ω_low = -ω_max 
         ω_high = ω_max

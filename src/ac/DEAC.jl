@@ -9,7 +9,7 @@ function deac_2D_generate_input_files(SimulationFolder::String,Correlation::Stri
     Δτ = β / (nτ - 1)
     τs = collect(range(0.0,(Float64(nτ)-1)*Δτ,nτ))
     
-    fermion = (Correlation == "greens_up" || Correlation == "greens_dn") 
+    fermion = (Correlation == "greens_up" || Correlation == "greens_dn" || Correlation ==  "greens") 
     nτ2 =  (fermion) ? nτ : Int64((nτ-1)/2)+1
     # nτ2 = Int64((nτ-1)/2)+1
     deac_dir = SimulationFolder * "/deac_inputs/" 
@@ -40,7 +40,7 @@ function deac_2D_generate_input_files(SimulationFolder::String,Correlation::Stri
 end
 
 function run_deac_AC_2D(SimulationFolder::String,Correlation::String,nx,ny,β;nStatistics=1000,baseSeed=1000,ω_max=20,nω=100, symmetry::String="none",deac_exe_dir::String="",bin_size=100)
-    fermion = (Correlation == "greens_up" || Correlation == "greens_dn") 
+    fermion = (Correlation == "greens_up" || Correlation == "greens_dn" || Correlation ==  "greens") 
     executable = (fermion) ? "deac.f" : "deac.b"
     if deac_exe_dir != ""
         executable = deac_exe_dir * "/" * executable
