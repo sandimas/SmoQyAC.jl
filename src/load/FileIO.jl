@@ -81,13 +81,17 @@ function load_from_SmoQyDQMC(;simulationfolder::String,
         for dim in 1:dimensions
             space_size[dim] = maximum(data_frame[:,dim_prefix*string(dim)])+1
         end
-        if (_correlation == "pair")
-            ID1 = "BOND_ID_1"
-            ID2 = "BOND_ID_2"
-        else
-            ID1 = "ORBITAL_ID_1"
-            ID2 = "ORBITAL_ID_2"  
+        df_names = names(data_frame)
+        ID1 = ID2 = "bad_names"
+        for n in 1:size(df_names,1)
+            if occursin("_ID_1",df_names[n])
+                ID1 = df_names[n]
+            end
+            if occursin("_ID_2",df_names[n])
+                ID2 = df_names[n]
+            end
         end
+        
         n_orbital = max(maximum(data_frame[:,ID1]),maximum(data_frame[:,ID2]))
         n_τ = (_type == "time-displaced") ?  maximum(data_frame[:,"TAU"])+1 : 1   
         dimension_key = Dict{String,Int}(
