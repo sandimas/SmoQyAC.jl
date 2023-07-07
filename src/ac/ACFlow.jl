@@ -197,13 +197,13 @@ function run_ACFlow(SimulationFolder::String,
             ### TODO, if fail try using symmetry
         end            
             
-
-        outfile = open("../"*output_dir*string(x) * "_" * string(y)*".csv","w")
-        write(outfile,"OMEGA A GREENS_R GREENS_I\n")
-        for w in 1:nω_adj
-            write(outfile,string(meshω[w]) * " " * string(A_out[w,x,y]) * " " * string(real(G_out[w,x,y])) * " " * string(imag(G_out[w,x,y])) * "\n")
-        end
-        close(outfile)
+#
+#        outfile = open("../"*output_dir*string(x) * "_" * string(y)*".csv","w")
+#        write(outfile,"OMEGA A GREENS_R GREENS_I\n")
+#        for w in 1:nω_adj
+#            write(outfile,string(meshω[w]) * " " * string(A_out[w,x,y]) * " " * string(real(G_out[w,x,y])) * " " * string(imag(G_out[w,x,y])) * "\n")
+#        end
+#        close(outfile)
     end
     cd("../")
     

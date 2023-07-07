@@ -5,7 +5,7 @@ using ColorSchemes
 
 function Plot_cut(data::AbstractArray,ωs::AbstractArray,outfile_name::String;
                   title::String="",x_label::String="",y_label::String="ω",
-                  xtick_info::Dict{String,Any}=(),overlay_1D_data::AbstractArray=[],
+                  xtick_info::Dict{String,Any}=Dict{String,Any}(),overlay_1D_data::AbstractArray=[],
                   clip_vals::Vector=[],ω_low::Float64=0.0,ω_high::Float64=2.0)
 
     figure_info = (; resolution=(1000,600))

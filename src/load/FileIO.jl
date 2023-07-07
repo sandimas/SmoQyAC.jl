@@ -123,17 +123,20 @@ function load_from_SmoQyDQMC(;simulationfolder::String,
         index_file = csv_folder * _correlation * "_" * _space * "_" * _type * "_index_key.csv"
         index_frame = CSV.read(index_file,DataFrame)
 
-            dimensions = get_dimensions(df=index_frame,space=_space)
-            space_size = ones(Int64,3)
-            for dim in 1:dimensions
-                space_size[dim] = maximum(index_frame[:,dim_prefix*string(dim)])+1
+        dimensions = get_dimensions(df=index_frame,space=_space)
+        space_size = ones(Int64,3)
+        for dim in 1:dimensions
+            space_size[dim] = maximum(index_frame[:,dim_prefix*string(dim)])+1
+        end
+        df_names = names(data_frame)
+        ID1 = ID2 = "bad_names"
+        for n in 1:size(df_names,1)
+            if occursin("_ID_1",df_names[n])
+                ID1 = df_names[n]
             end
-        if (_correlation == "pair")
-            ID1 = "BOND_ID_1"
-            ID2 = "BOND_ID_2"
-        else
-            ID1 = "ORBITAL_ID_ID_1"
-            ID2 = "ORBITAL_ID_ID_2"  
+            if occursin("_ID_2",df_names[n])
+                ID2 = df_names[n]
+            end
         end
         n_orbital = max(maximum(index_frame[:,ID1]),maximum(index_frame[:,ID2]))
         n_τ = (_type == "time-displaced") ?  maximum(index_frame[:,"Tau"])+1 : 1   
